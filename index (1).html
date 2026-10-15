@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1b2430">
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg">
+<title>Мой кошелёк</title>
+<style>
+:root{--bg:#eef1f4;--ink:#1b2430;--mut:#5d6b7a;--card:#fff;--line:#d9dee4;--acc:#0e7c7b;--out:#b8601a;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#141a21;--ink:#e8edf2;--mut:#93a1b0;--card:#1e2630;--line:#2c3743;--acc:#35b5b3;--out:#e59a55}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom))}
+main{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:8px 0 16px;letter-spacing:-.01em}h2{font-size:1.05rem;margin:20px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.bal{font-size:2.4rem;font-weight:700;letter-spacing:-.02em}.mut{color:var(--mut);font-size:.9rem}
+label{display:block;font-size:.9rem;color:var(--mut);margin:10px 0 4px}
+input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+button,.btn{display:inline-block;padding:11px 16px;border:0;border-radius:10px;background:var(--acc);color:#fff;font:inherit;font-weight:600;text-decoration:none;cursor:pointer;margin:8px 8px 0 0}
+button.sec,.btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}.row:last-child{border:0}
+.row b{white-space:nowrap}.in{color:var(--acc)}.outc{color:var(--out)}
+.bar{height:8px;border-radius:4px;background:var(--line);margin-top:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--out)}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;margin:0;border-radius:0;background:none;color:var(--mut);padding:16px 4px}nav button[aria-selected=true]{color:var(--acc);box-shadow:inset 0 3px 0 var(--acc)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.cal div{min-height:64px;padding:4px;border-radius:8px;border:1px solid var(--line);font-size:.72rem;line-height:1.2;overflow:hidden}.cal .h{min-height:0;border:0;text-align:center;color:var(--mut);font-size:.8rem;padding:0}.cal .w{background:var(--acc);color:#fff;border-color:var(--acc)}.cal .n{opacity:.45}.cal .t{outline:2px solid var(--out);outline-offset:1px}.cal b{display:block;font-size:.9rem}.cnt{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cnt div{background:var(--bg);border-radius:10px;padding:10px}.cnt b{display:block;font-size:1.6rem}.err{color:#c0392b}[hidden]{display:none}
+</style></head><body><main>
+<section id="money"><h1>Деньги</h1><div id="moneyBody"></div></section>
+<section id="ride" hidden><h1>Расписание</h1><div id="schBody"></div></section>
+<section id="bus" hidden><h1>Транспорт</h1><div class="card"><p>Открытых данных по расписанию Бердичева я не нашёл, поэтому здесь ссылки на сайты с расписанием.</p>
+<a class="btn" href="https://www.obilet.com/ua/bus-ticket/berdicev-jitomir" target="_blank" rel="noopener">Автобусы Бердичев – Житомир</a>
+<a class="btn" href="https://poizdato.net/rozklad-po-stantsii/berdychiv(vsi-vokzaly)/poizda/" target="_blank" rel="noopener">Поезда со станции Бердичев</a>
+<a class="btn sec" href="https://easyway.info" target="_blank" rel="noopener">EasyWay</a></div></section>
+<section id="set" hidden><h1>Настройки</h1><div class="card">
+<label for="tok">Токен Monobank</label><input id="tok" type="password" autocomplete="off" placeholder="Получить на api.monobank.ua">
+<label for="api">Адрес прокси (если запросы блокируются)</label><input id="api" placeholder="https://имя.workers.dev">
+<button id="save">Сохранить</button><button class="sec" id="clear">Стереть данные</button>
+<p class="mut">Токен хранится только на этом устройстве. Доступ только на чтение.</p></div></section>
+</main>
+<nav role="tablist"><button data-t="money" aria-selected="true">Деньги</button><button data-t="ride" aria-selected="false">Расписание</button><button data-t="bus" aria-selected="false">Транспорт</button><button data-t="set" aria-selected="false">Настройки</button></nav>
+<script>
+const $=id=>document.getElementById(id),LS={g:k=>{try{return localStorage.getItem(k)}catch{return null}},s:(k,v)=>{try{localStorage.setItem(k,v)}catch{}},d:k=>{try{localStorage.removeItem(k)}catch{}}};
+const CUR={980:'₴',840:'$',978:'€'},fmt=(k,c=980)=>(k/100).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+(CUR[c]||'');
+const CAT=[['Продукты',[5411,5422,5441,5451,5462,5499,5300,5311]],['Кафе и рестораны',[5811,5812,5813,5814]],['Транспорт и авто',[4111,4121,4131,4789,5541,5542,7523,7538]],['Здоровье',[5912,8011,8021,8062,8099]],['Связь и ЖКХ',[4814,4900,4899]],['Переводы',[4829,6012,6538]]];
+const cat=m=>(CAT.find(c=>c[1].includes(m))||['Другое'])[0];
+const base=()=>(LS.g('api')||'https://api.monobank.ua').replace(/\/$/,'');
+const api=async p=>{const r=await fetch(base()+p,{headers:{'X-Token':LS.g('tok')||''}});if(r.status==429)throw new Error('Monobank просит подождать минуту и обновить снова.');if(!r.ok)throw new Error('Ошибка '+r.status+'. Проверь токен.');return r.json()};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected',x==b));['money','ride','bus','set'].forEach(t=>$(t).hidden=t!=b.dataset.t)});
+$('tok').value=LS.g('tok')||'';$('api').value=LS.g('api')||'';
+$('save').onclick=()=>{LS.s('tok',$('tok').value.trim());LS.s('api',$('api').value.trim());LS.d('info');load()};
+$('clear').onclick=()=>{['tok','api','info','acc'].forEach(LS.d);$('tok').value=$('api').value='';draw()};
+let info=JSON.parse(LS.g('info')||'null'),stm=[],msg='';
+async function load(){msg='';if(!LS.g('tok')){draw();return}msg='Загрузка…';draw();
+try{info=await api('/personal/client-info');LS.s('info',JSON.stringify(info));
+const a=LS.g('acc')||info.accounts[0].id,now=Math.floor(Date.now()/1000);
+stm=await api(`/personal/statement/${a}/${now-30*86400}/${now}`);msg=''}catch(e){msg='<span class="err">'+e.message+'</span>'}draw()}
+function draw(){const b=$('moneyBody');if(!LS.g('tok')){b.innerHTML='<div class="card"><p>Добавь токен Monobank, чтобы увидеть баланс и расходы.</p><p class="mut">Открой «Настройки».</p></div>';return}
+let h=msg?`<p>${msg}</p>`:'';
+if(info){const a=info.accounts,cur=LS.g('acc')||a[0].id,ac=a.find(x=>x.id==cur)||a[0];
+h+=`<div class="card"><select id="accSel" aria-label="Карта">${a.map(x=>`<option value="${x.id}" ${x.id==ac.id?'selected':''}>${x.type} •• ${(x.maskedPan[0]||'').slice(-4)} ${CUR[x.currencyCode]||''}</option>`).join('')}</select>
+<div class="bal">${fmt(ac.balance,ac.currencyCode)}</div><div class="mut">${info.name}</div><button id="ref" class="sec">Обновить</button></div>`;
+const sp={};let tot=0;stm.filter(t=>t.amount<0).forEach(t=>{const c=cat(t.mcc);sp[c]=(sp[c]||0)-t.amount;tot-=t.amount});
+const ent=Object.entries(sp).sort((x,y)=>y[1]-x[1]);
+if(ent.length)h+=`<h2>Расходы за 30 дней: ${fmt(tot,ac.currencyCode)}</h2><p class="mut">Нажми на категорию, чтобы задать лимит. Полоса станет красной при превышении.</p><div class="card">${ent.map(([c,v])=>`<div style="margin:8px 0" data-c="${c}" tabindex="0" role="button" aria-label="Задать лимит: ${c}"><div class="row" style="border:0;padding:0"><span>${c}${LIM()[c]?' · лимит '+LIM()[c]:''}</span><b>${fmt(v,ac.currencyCode)}</b></div><div class="bar"><i style="width:${Math.min(100,v/(LIM()[c]||ent[0][1])*100)}%;${LIM()[c]&&v>LIM()[c]*100?'background:#c0392b':''}"></i></div></div>`).join('')}</div>`;
+if(stm.length)h+=`<h2>Операции</h2><div class="card">${stm.slice(0,30).map(t=>`<div class="row"><div>${t.description}<div class="mut">${new Date(t.time*1000).toLocaleDateString('ru-RU')} · ${cat(t.mcc)}</div></div><b class="${t.amount<0?'outc':'in'}">${fmt(t.amount,t.currencyCode)}</b></div>`).join('')}</div>`}
+b.innerHTML=h;document.querySelectorAll('[data-c]').forEach(e=>e.onclick=()=>{const c=e.dataset.c,v=prompt('Лимит на 30 дней для «'+c+'», в гривнах (пусто — убрать):',LIM()[c]||'');if(v===null)return;const l=LIM();v&&+v>0?l[c]=+v:delete l[c];LS.s('lim',JSON.stringify(l));draw()});const s=$('accSel');if(s)s.onchange=()=>{LS.s('acc',s.value);load()};const r=$('ref');if(r)r.onclick=load}
+
+const EGOR={16:['Яна','Вероніка'],17:['Артем','Вероніка'],18:['Артем','Вероніка'],19:['Яна'],23:['Яна','Вероніка'],24:['Артем','Вероніка'],25:['Артем','Вероніка'],26:['Артем'],27:['?'],29:['Вероніка'],30:['Вероніка'],31:['Артем','Вероніка']};
+const FROM=14,LAST=31;
+function drawSch(){const n=new Date(),inOct=n.getFullYear()==2026&&n.getMonth()==9,td=inOct?n.getDate():(n>new Date(2026,9,31)?32:0);
+const W=Object.keys(EGOR).map(Number),all=W.length;
+const doneW=W.filter(d=>d<td).length,leftW=W.filter(d=>d>=td).length;
+let offAll=0,offLeft=0;for(let d=FROM;d<=LAST;d++)if(!EGOR[d]){offAll++;if(d>=td)offLeft++}
+const next=W.find(d=>d>=td);
+let h=`<div class="card"><b>Егор · Перемога, октябрь 2026</b><div class="cnt" style="margin-top:10px">
+<div><b>${all}</b>рабочих дней в месяце</div><div><b>${leftW}</b>рабочих осталось</div>
+<div><b>${doneW}</b>рабочих прошло</div><div><b>${offLeft}</b>выходных осталось</div></div>
+<p class="mut">${next?'Ближайшая смена: '+next+' октября'+(EGOR[next]?' · с '+EGOR[next].join(', '):''):'Смен больше нет'}.<br>Данные по Перемоге есть с 14 числа: с 1 по 13 неизвестны, в счётчик не входят. Выходных с 14 по 31: ${offAll}.</p></div>`;
+h+='<div class="card"><div class="cal">'+['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].map(x=>`<div class="h">${x}</div>`).join('')+'<div class="h"></div>'.repeat(3);
+for(let d=1;d<=31;d++){const w=EGOR[d],c=(w?'w ':(d<FROM?'n ':''))+(d==td?'t':'');
+h+=`<div class="${c}"><b>${d}</b>${w?w.join('<br>'):(d<FROM?'нет данных':'')}</div>`}
+h+='</div><p class="mut">Закрашено: Егор работает, ниже имена напарников. «?» — второй человек не указан.</p></div>';
+$('schBody').innerHTML=h}
+drawSch();
+draw();if(LS.g('tok'))load();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>
